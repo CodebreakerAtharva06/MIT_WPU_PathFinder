@@ -1,2 +1,3 @@
 # MIT_WPU_PathFinder
-created a basic pathfinder for our college MIT-WPU
+Created a basic pathfinder for our college MIT-WPU
+It might be difficult to explore large college campuses, especially for first-time visitors. This study introduces an innovative voice-based campus route system that provides hands-free, direction using standard dialect handling, discourse acknowledgment, and location-based administrations. The system was implemented and tested on a university campus, demonstrating client satisfaction and forward transparency. Emerges as a tall exactness for both outdoor and interior routes, with possible uses extending to various open places including medical facilities, airports, and retail establishments. The design of the framework, problems with usage, and potential developments for better campus wayfinding are discussed in the paper.
