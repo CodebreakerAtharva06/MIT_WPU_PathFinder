@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Pathfinding and Information</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='background.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MIT-WPU Campus Pathfinding and Information</h1>
+        
+        <section id="pathfinding">
+            <h2>Campus Pathfinding</h2>
+            <p>Choose your input method and start navigating the campus!</p>
+            <div class="input-selection">
+                <button id="pathVoiceBtn" class="btn">Voice Input</button>
+                <button id="pathTypeBtn" class="btn active">Type Input</button>
+            </div>
+            <div id="pathStatus" class="status"></div>
+        </section>
+
+        <section id="qna">
+            <h2>Campus Information Q&A</h2>
+            <p>Ask about campus locations, services, or general information.</p>
+            <div class="input-selection">
+                <button id="qnaVoiceBtn" class="btn">Voice Input</button>
+                <button id="qnaTypeBtn" class="btn active">Type Input</button>
+            </div>
+            <div class="qna-input">
+                <input type="text" id="questionInput" placeholder="Type your question here...">
+                <button id="askBtn" class="btn">Ask</button>
+            </div>
+            <div id="voiceInputArea" style="display: none;">
+                <button id="startRecordingBtn" class="btn">Start Recording</button>
+            </div>
+            <div id="responseArea" class="response-area"></div>
+        </section>
+    </div>
+
+    <script>
+    let currentQnaInputMethod = 'type';
+    let currentPathInputMethod = 'type';
+
+    document.getElementById('qnaVoiceBtn').addEventListener('click', () => setQnaInputMethod('voice'));
+    document.getElementById('qnaTypeBtn').addEventListener('click', () => setQnaInputMethod('type'));
+    document.getElementById('pathVoiceBtn').addEventListener('click', () => setPathInputMethod('voice'));
+    document.getElementById('pathTypeBtn').addEventListener('click', () => setPathInputMethod('type'));
+
+    document.getElementById('askBtn').addEventListener('click', askQuestion);
+    document.getElementById('startRecordingBtn').addEventListener('click', startVoiceRecording);
+
+    function setQnaInputMethod(method) {
+        currentQnaInputMethod = method;
+        document.getElementById('qnaVoiceBtn').classList.toggle('active', method === 'voice');
+        document.getElementById('qnaTypeBtn').classList.toggle('active', method === 'type');
+        document.querySelector('.qna-input').style.display = method === 'type' ? 'flex' : 'none';
+        document.getElementById('voiceInputArea').style.display = method === 'voice' ? 'block' : 'none';
+    }
+
+    function setPathInputMethod(method) {
+        currentPathInputMethod = method;
+        document.getElementById('pathVoiceBtn').classList.toggle('active', method === 'voice');
+        document.getElementById('pathTypeBtn').classList.toggle('active', method === 'type');
+        runPygame(method);
+    }
+
+    function askQuestion() {
+        let question = document.getElementById('questionInput').value.trim();
+        if (question) {
+            sendQuestion(question);
+        }
+    }
+
+    function startVoiceRecording() {
+        const startRecordingBtn = document.getElementById('startRecordingBtn');
+        startRecordingBtn.textContent = 'Listening...';
+        startRecordingBtn.disabled = true;
+
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+        recognition.start();
+
+        recognition.onresult = function(event) {
+            const question = event.results[0][0].transcript;
+            sendQuestion(question);
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error', event.error);
+            document.getElementById('responseArea').innerHTML = '<p>Sorry, there was an error with speech recognition. Please try again.</p>';
+            resetRecordingButton();
+        };
+
+        recognition.onend = function() {
+            resetRecordingButton();
+        };
+    }
+
+    function resetRecordingButton() {
+        const startRecordingBtn = document.getElementById('startRecordingBtn');
+        startRecordingBtn.textContent = 'Start Recording';
+        startRecordingBtn.disabled = false;
+    }
+
+    function sendQuestion(question) {
+        const responseArea = document.getElementById('responseArea');
+        responseArea.innerHTML = '<p>Processing...</p>';
+
+        fetch('/ask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ question: question })
+        })
+        .then(response => response.json())
+        .then(data => {
+            responseArea.innerHTML = `<p><strong>Q:</strong> ${question}</p><p><strong>A:</strong> ${data.answer}</p>`;
+            
+            if (currentQnaInputMethod === 'voice') {
+                speakResponse(data.answer);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            responseArea.innerHTML = '<p>Sorry, an error occurred. Please try again.</p>';
+        });
+    }
+
+    function speakResponse(text) {
+        const speech = new SpeechSynthesisUtterance(text);
+        speech.lang = 'en-US';
+        window.speechSynthesis.speak(speech);
+    }
+
+    function runPygame(inputMethod) {
+        fetch('/run_pygame', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `input_method=${inputMethod}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('pathStatus').textContent = `Pygame started with ${inputMethod} input method. Check the Pygame window.`;
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            document.getElementById('pathStatus').textContent = 'An error occurred. Please try again.';
+        });
+    }
+    </script>
+</body>
+</html>
